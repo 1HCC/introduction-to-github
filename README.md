@@ -1,74 +1,218 @@
-<header>
+ module lab0103(
+ input sysclk,check,p7,p6,p5,p4,p3,p2,p1,p0,
+ output reg enable,beep,
+ output reg [2:0] set,
+ output reg [7:0] DATA_R,DATA_G,DATA_B,
+ output reg [6:0] seg,
+ output reg [2:0] COM
+ 
+);
+ byte str;
+ bit clear;
+ reg fail;
+ reg [3:0] C_count,B_count,A_count;
+ reg [2:0] cc;
+ divfreq  (sysclk ,clk_div);
+ divfreq2 (sysclk ,clk_div2);
+ reg [7:0] ans1,ans2,ans3;
+ reg [6:0] seg1, seg2, seg3;
+ BCD2Seg S0(A_count, A0,B0,C0,D0,E0,F0,G0);
+ BCD2Seg S1(B_count, A1,B1,C1,D1,E1,F1,G1);
+ BCD2Seg S2(C_count, A2,B2,C2,D2,E2,F2,G2);
+ logic [7:0] c[7:0]=
+ '{ 
+  8'b11111100,
+  8'b11111100,
+  8'b11111100,
+  8'b00000000,
+  8'b00000000,
+  8'b11111100,
+  8'b11111100,
+  8'b11111100
+ };
+ logic [7:0] f[7:0]=
+ '{ 
+  8'b11111111,
+  8'b11111101,
+  8'b11101101,
+  8'b11101101,
+  8'b11101101,
+  8'b00000001,
+  8'b11111111,
+  8'b11111111
+ };
+initial 
+ begin
+  clear=0;
+  fail=0;
+  enable=1;
+  ans1=8'b00000001;
+  ans2=8'b00010000;
+  ans3=8'b01011111;
+  set=3'b000;
+  DATA_B=8'b11111111;
+  DATA_G=8'b11111111;
+  DATA_R=8'b11111111;
+  COM = 3'b000;
+  cc=0;
+  A_count=0;
+  B_count=1;
+  C_count=0;
+ end 
+always @(posedge check)//check answer
+begin
+ if(!p7==ans1[7]&&!p6==ans1[6]&&!p5==ans1[5]&&!p4==ans1[4]&&p3==ans1[3]&&p2==ans1[2]&&p1==ans1[1]&&p0==ans1[0])
+  clear=1;
+ else if(!p7==ans2[7]&&!p6==ans2[6]&&!p5==ans2[5]&&!p4==ans2[4]&&p3==ans2[3]&&p2==ans2[2]&&p1==ans2[1]&&p0==ans2[0])
+  clear=1;
+ else if(!p7==ans3[7]&&!p6==ans3[6]&&!p5==ans3[5]&&!p4==ans3[4]&&p3==ans3[3]&&p2==ans3[2]&&p1==ans3[1]&&p0==ans3[0])
+  clear=1;
+ beep=clear;
+end
 
-<!--
-  <<< Author notes: Course header >>>
-  Include a 1280×640 image, course title in sentence case, and a concise description in emphasis.
-  In your repository settings: enable template repository, add your 1280×640 social image, auto delete head branches.
-  Add your open source license, GitHub uses MIT license.
--->
+always @(posedge clk_div2)//show image
+begin
+ if(clear==1)
+ begin
+  if (set==3'b111)
+   set=3'b000;
+  else
+   set=set+1;
+  DATA_G=c[set];
+  
+ end
+ else if(fail==1)
+ begin
+  if (set==3'b111)
+   set=3'b000;
+  else
+   set=set+1;
+  DATA_R=f[set];
+ end
+ else
+ begin
+  DATA_R=8'b11111111;
+  DATA_G=8'b11111111;
+  DATA_B=8'b11111111;
+ end
+end
 
-# Introduction to GitHub
+ always@(posedge clk_div2)
+   begin
+  seg1[0] = A0;
+  seg1[1] = B0;
+  seg1[2] = C0;
+  seg1[3] = D0;
+  seg1[4] = E0;
+  seg1[5] = F0;
+  seg1[6] = G0;
+  
+  seg2[0] = A1;
+  seg2[1] = B1;
+  seg2[2] = C1;
+  seg2[3] = D1;
+  seg2[4] = E1;
+  seg2[5] = F1;
+  seg2[6] = G1;
+  
+  seg3[0] = A2;
+  seg3[1] = B2;
+  seg3[2] = C2;
+  seg3[3] = D2;
+  seg3[4] = E2;
+  seg3[5] = F2;
+  seg3[6] = G2;
+  
+  if(cc == 0)
+   begin
+    seg <= seg1;
+    COM[1] <= 1'b1;
+    COM[2] <= 1'b1;
+    COM[0] <= 1'b0;
+    cc <= 1;
+   end
+  else if(cc == 1)
+   begin
+    seg <= seg2;
+    COM[1] <= 1'b0;
+    COM[0] <= 1'b1;
+    COM[2] <= 1'b1;
+    cc <= 2;
+   end
+  else if(cc == 2)
+     begin
+    seg <= seg3;
+    COM[1] <= 1'b1;
+    COM[0] <= 1'b1;
+    COM[2] <= 1'b0;
+    cc <= 0;
+   end
+   end
+ 
+always@(posedge clk_div)
+   begin
+     if(A_count == 0 && B_count == 0 && C_count == 0)
+       fail = 1;
+     if(!fail&&!clear)
+      begin
+        if(A_count == 0)
+          begin
+           A_count <= 9;
+           B_count <= B_count - 1;
+          end
+        else
+          A_count <= A_count - 1;
+        if(B_count == 0 && A_count == 0) 
+          begin
+           B_count <= 5;
+           if(C_count != 0)
+            C_count <= C_count - 1;
+          end
+      end
+    end
+endmodule
 
-_Get started using GitHub in less than an hour._
+//秒數轉7段顯示器
+module BCD2Seg(input [3:0] D_count, output reg a,b,c,d,e,f,g);
+  always @(D_count)
+    case(D_count)
+       4'b0000:{a,b,c,d,e,f,g}=7'b0000001;
+   4'b0001:{a,b,c,d,e,f,g}=7'b1001111;
+   4'b0010:{a,b,c,d,e,f,g}=7'b0010010;
+   4'b0011:{a,b,c,d,e,f,g}=7'b0000110;
+   4'b0100:{a,b,c,d,e,f,g}=7'b1001100;
+   4'b0101:{a,b,c,d,e,f,g}=7'b0100100;
+   4'b0110:{a,b,c,d,e,f,g}=7'b1100000;
+   4'b0111:{a,b,c,d,e,f,g}=7'b0001101;
+   4'b1000:{a,b,c,d,e,f,g}=7'b0000000;
+   4'b1001:{a,b,c,d,e,f,g}=7'b0001100;
+   default:{a,b,c,d,e,f,g}=7'b1111111;
+    endcase
+endmodule
 
-</header>
+module divfreq(input sysclk, output reg clk_div);
+ reg [24:0] Count;
+ always @(posedge sysclk)
+  begin
+   if(Count > 25000000)
+    begin
+     Count <= 25'b0;
+     clk_div <= ~clk_div;
+    end
+   else Count <= Count + 1'b1;
+  end
+endmodule 
 
-<!--
-  <<< Author notes: Course start >>>
-  Include start button, a note about Actions minutes,
-  and tell the learner why they should take the course.
--->
+module divfreq2(input sysclk, output reg clk_div2);
+ reg [24:0] Count2;
+ always @(posedge sysclk)
+  begin
+   if(Count2 > 10000)
+    begin
+     Count2 <= 25'b0;
+     clk_div2 <= ~clk_div2;
+    end
+   else Count2 <= Count2 + 1'b1;
+  end
+endmodule
 
-## Welcome
-
-People use GitHub to build some of the most advanced technologies in the world. Whether you’re visualizing data or building a new game, there’s a whole community and set of tools on GitHub that can help you do it even better. GitHub Skills’ “Introduction to GitHub” course guides you through everything you need to start contributing in less than an hour.
-
-- **Who is this for**: New developers, new GitHub users, and students.
-- **What you'll learn**: We'll introduce repositories, branches, commits, and pull requests.
-- **What you'll build**: We'll make a short Markdown file you can use as your [profile README](https://docs.github.com/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme).
-- **Prerequisites**: None. This course is a great introduction for your first day on GitHub.
-- **How long**: This course takes less than one hour to complete.
-
-In this course, you will:
-
-1. Create a branch
-2. Commit a file
-3. Open a pull request
-4. Merge your pull request
-
-### How to start this course
-
-<!-- For start course, run in JavaScript:
-'https://github.com/new?' + new URLSearchParams({
-  template_owner: 'skills',
-  template_name: 'introduction-to-github',
-  owner: '@me',
-  name: 'skills-introduction-to-github',
-  description: 'My clone repository',
-  visibility: 'public',
-}).toString()
--->
-
-[![start-course](https://user-images.githubusercontent.com/1221423/235727646-4a590299-ffe5-480d-8cd5-8194ea184546.svg)](https://github.com/new?template_owner=skills&template_name=introduction-to-github&owner=%40me&name=skills-introduction-to-github&description=My+clone+repository&visibility=public)
-
-1. Right-click **Start course** and open the link in a new tab.
-2. In the new tab, most of the prompts will automatically fill in for you.
-   - For owner, choose your personal account or an organization to host the repository.
-   - We recommend creating a public repository, as private repositories will [use Actions minutes](https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions).
-   - Scroll down and click the **Create repository** button at the bottom of the form.
-3. After your new repository is created, wait about 20 seconds, then refresh the page. Follow the step-by-step instructions in the new repository's README.
-
-<footer>
-
-<!--
-  <<< Author notes: Footer >>>
-  Add a link to get support, GitHub status page, code of conduct, license link.
--->
-
----
-
-Get help: [Post in our discussion board](https://github.com/orgs/skills/discussions/categories/introduction-to-github) &bull; [Review the GitHub status page](https://www.githubstatus.com/)
-
-&copy; 2024 GitHub &bull; [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md) &bull; [MIT License](https://gh.io/mit)
-
-</footer>
